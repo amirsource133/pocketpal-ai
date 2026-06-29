@@ -8,7 +8,11 @@ import {
   AgentToolOutcome,
   MessageType,
 } from '../utils/types';
-import {CompletionParams} from '../utils/completionTypes';
+import {
+  BannerVariant,
+  CompletionParams,
+  CompletionResultSnapshot,
+} from '../utils/completionTypes';
 import {chatSessionRepository} from '../repositories/ChatSessionRepository';
 import {defaultCompletionParams} from '../utils/completionSettingsVersions';
 import {derivedText} from '../utils/chat';
@@ -92,6 +96,11 @@ class ChatSessionStore {
   // persists; cleared on session creation, new-chat reset, and session
   // switch.
   newChatThinkingOverride: boolean | undefined = undefined;
+  // User's manual graded-effort choice in the no-session chat path, paired with
+  // newChatThinkingOverride. Carries the effort grade (low/medium/high) so a
+  // graded pill round-trips before the first message creates a session; cleared
+  // alongside newChatThinkingOverride.
+  newChatReasoningEffort: string | undefined = undefined;
   // Store localized date group names
   dateGroupNames: typeof DEFAULT_GROUP_NAMES = DEFAULT_GROUP_NAMES;
   // Migration status
@@ -114,6 +123,15 @@ class ChatSessionStore {
   // invalidated on every tool-call token; only `PendingIndicatorView`
   // reads it.
   toolCallTokenCount: number = 0;
+
+  // Banner state for the context-limit warning. All ephemeral (MobX-only,
+  // no DB column). The snapshot is mirrored from the newest finished turn's
+  // metadata.completionResult; the rest track per-draft dismissals, the run
+  // of back-to-back full turns, and which pal-load hints have already shown.
+  lastCompletionResult: CompletionResultSnapshot | undefined = undefined;
+  dismissedBannerVariants: Set<BannerVariant> = new Set();
+  consecutiveFullFailures: number = 0;
+  palLoadHintSeen: Set<string> = new Set();
 
   constructor() {
     makeAutoObservable(this);
@@ -211,6 +229,35 @@ class ChatSessionStore {
     this.toolCallTokenCount = value;
   }
 
+  // Mirror a finished turn's snapshot into the store and advance banner
+  // bookkeeping: a fresh finished turn clears per-draft dismissals, and the
+  // full-turn run either increments or resets.
+  recordCompletionSnapshot(snapshot: CompletionResultSnapshot) {
+    this.lastCompletionResult = snapshot;
+    this.dismissedBannerVariants = new Set();
+    this.consecutiveFullFailures = snapshot.contextFull
+      ? this.consecutiveFullFailures + 1
+      : 0;
+  }
+
+  setBannerDismissed(variant: BannerVariant) {
+    if (this.dismissedBannerVariants.has(variant)) {
+      return;
+    }
+    const next = new Set(this.dismissedBannerVariants);
+    next.add(variant);
+    this.dismissedBannerVariants = next;
+  }
+
+  markPalLoadHintSeen(signature: string) {
+    if (this.palLoadHintSeen.has(signature)) {
+      return;
+    }
+    const next = new Set(this.palLoadHintSeen);
+    next.add(signature);
+    this.palLoadHintSeen = next;
+  }
+
   /**
    * Convenience derived flag for renderers that previously consulted a
    * boolean. Single source of truth: `agentUiState.status`.
@@ -293,6 +340,7 @@ class ChatSessionStore {
       runInAction(() => {
         this.sessions = this.sessions.filter(session => session.id !== id);
         this.sessionDrafts.delete(id);
+        this.dismissedBannerVariants = new Set();
       });
     } catch (error) {
       console.error('Failed to delete session:', error);
@@ -315,10 +363,15 @@ class ChatSessionStore {
       this.newChatPalId = this.activePalId;
       this.newChatSettingsSource = 'pal'; // Reset to default for new chat
       this.newChatThinkingOverride = undefined;
+      this.newChatReasoningEffort = undefined;
       // Do not copy completion settings from session to global settings
       // Instead, preserve global settings as they are
       this.exitEditMode();
       this.activeSessionId = null;
+      this.lastCompletionResult = undefined;
+      this.dismissedBannerVariants = new Set();
+      this.consecutiveFullFailures = 0;
+      this.palLoadHintSeen = new Set();
     });
   }
 
@@ -362,7 +415,27 @@ class ChatSessionStore {
       this.newChatPalId = undefined;
       this.newChatSettingsSource = 'pal'; // Reset for consistency
       this.newChatThinkingOverride = undefined;
+      this.newChatReasoningEffort = undefined;
+      this.lastCompletionResult = this.hydrateCompletionSnapshot(session);
+      this.dismissedBannerVariants = new Set();
+      this.consecutiveFullFailures = 0;
+      // palLoadHintSeen is intentionally NOT cleared here: it's an
+      // app-lifetime, per-(pal,n_ctx,talents) one-shot suppressor, so it must
+      // survive session switches. Only resetActiveSession clears it.
     });
+  }
+
+  // Read the newest assistant turn's persisted snapshot so the banner
+  // reflects the loaded chat without waiting for a new turn. Messages are
+  // unshift-ordered ([0] newest); snapshots predating this feature lack the
+  // fields and resolve to not-full.
+  private hydrateCompletionSnapshot(
+    session: SessionMetaData | undefined,
+  ): CompletionResultSnapshot | undefined {
+    const snapshot = session?.messages.find(
+      msg => msg.metadata?.completionResult,
+    )?.metadata?.completionResult;
+    return snapshot as CompletionResultSnapshot | undefined;
   }
 
   // Update session title by session ID
@@ -539,6 +612,7 @@ class ChatSessionStore {
         this.activeSessionId = newSession.id;
         this.newChatPalId = undefined;
         this.newChatThinkingOverride = undefined;
+        this.newChatReasoningEffort = undefined;
       });
     } catch (error) {
       console.error('Failed to create new session:', error);
@@ -1210,6 +1284,12 @@ class ChatSessionStore {
           runInAction(() => {
             session.messages =
               updatedSession?.messages?.map(msg => msg.toMessageObject()) || [];
+            // The frozen completion snapshot described the pre-edit
+            // conversation; editing/regenerating shortens the context, so the
+            // banner state is stale. Clear it and let the next turn re-evaluate.
+            this.lastCompletionResult = undefined;
+            this.dismissedBannerVariants = new Set();
+            this.consecutiveFullFailures = 0;
           });
         }
       }
@@ -1300,6 +1380,7 @@ class ChatSessionStore {
           session => !idsToDelete.includes(session.id),
         );
         this.exitSelectionMode();
+        this.dismissedBannerVariants = new Set();
       });
     } catch (error) {
       console.error('Failed to bulk delete sessions:', error);
@@ -1402,12 +1483,19 @@ class ChatSessionStore {
     }
 
     // No-session-only: apply user's explicit thinking override last so it
-    // wins over pal's enable_thinking. Single-key overlay — does NOT touch
-    // any other field, and does NOT affect tool availability.
+    // wins over pal's enable_thinking. Overlays the local enable_thinking flag
+    // AND the reasoning carrier (so the remote wire path honors the on/off
+    // intent for the first message of the new chat, not just local thinking).
+    // Does NOT touch any other field, and does NOT affect tool availability.
     if (!sessionId && this.newChatThinkingOverride !== undefined) {
       resolvedSettings = {
         ...resolvedSettings,
         enable_thinking: this.newChatThinkingOverride,
+        reasoning: {
+          ...resolvedSettings.reasoning,
+          enabled: this.newChatThinkingOverride,
+          effort: this.newChatReasoningEffort,
+        },
       };
     }
 

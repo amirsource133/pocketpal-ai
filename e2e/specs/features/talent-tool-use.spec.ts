@@ -22,6 +22,8 @@ import {Selectors, byTestId, byText} from '../../helpers/selectors';
 import {
   downloadAndLoadModel,
   dismissPerformanceWarningIfPresent,
+  dismissContextRoomSheetIfPresent,
+  waitForAiMessage,
   waitForInferenceComplete,
 } from '../../helpers/model-actions';
 import {TIMEOUTS} from '../../fixtures/models';
@@ -55,7 +57,12 @@ describe('Talent Tool-Use Pipeline', () => {
   let drawerPage: DrawerPage;
   let palSheetPage: PalSheetPage;
 
-  before(async () => {
+  before(async function (this: Mocha.Context) {
+    // Qwen3-1.7B (~1 GB) is re-downloaded every run on Android (fullReset) and
+    // its download + load can exceed the default 10-min hook timeout on the
+    // emulator late in a long suite. Give the setup hook extra headroom.
+    this.timeout(900000);
+
     chatPage = new ChatPage();
     drawerPage = new DrawerPage();
     palSheetPage = new PalSheetPage();
@@ -161,12 +168,36 @@ describe('Talent Tool-Use Pipeline', () => {
     await chatPage.resetChat();
     await browser.pause(500);
 
-    // Send the HTML creation prompt
-    await chatPage.sendMessage(HTML_PROMPT);
+    // Send the HTML creation prompt. A pal that needs more room than the
+    // current context pops the pal-load-hint snackbar over the input; its "More
+    // room" action sits under the send button and can intercept the send tap
+    // (opening the increase-context sheet) so the message never posts. Clear
+    // overlays, send, and confirm the user message actually posted — retry the
+    // send once if it was intercepted (#764).
+    await chatPage.typeInInput(HTML_PROMPT);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await dismissContextRoomSheetIfPresent();
+      const hint = browser.$(Selectors.contextBanner.palLoadHint);
+      if (await hint.isDisplayed().catch(() => false)) {
+        // Wait out the snackbar (auto-dismisses) so it can't intercept the tap.
+        await hint
+          .waitForDisplayed({reverse: true, timeout: 8000})
+          .catch(() => {});
+      }
+      await chatPage.tapSendButton();
+      const userMsg = browser.$(Selectors.chat.userMessage);
+      const posted = await userMsg
+        .waitForExist({timeout: 5000})
+        .then(() => true)
+        .catch(() => false);
+      if (posted) {
+        break;
+      }
+    }
 
-    // Wait for AI message to appear
-    const aiMessageEl = browser.$(Selectors.chat.aiMessage);
-    await aiMessageEl.waitForExist({timeout: TIMEOUTS.inference});
+    // Wait for the AI reply. The increase-context sheet can still surface
+    // mid-inference; poll-and-dismiss so the bubble is seen (#764).
+    await waitForAiMessage(TIMEOUTS.inference);
 
     // Wait for inference to complete
     const timingText = await waitForInferenceComplete(TIMEOUTS.inference);

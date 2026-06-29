@@ -118,8 +118,12 @@ export const Selectors = {
     get modelsTab(): string {
       return byText('Models');
     },
+    // Pals tab doubles as the drawer-open indicator (DrawerPage.isOpen /
+    // waitForOpen / waitForClose), so it must survive a language switch.
+    // Match the app's stable testID (SidebarContent drawer-item-pals) instead
+    // of the English label.
     get palsTab(): string {
-      return byText('Pals');
+      return byTestId('drawer-item-pals');
     },
     get benchmarkTab(): string {
       return byText('Benchmark');
@@ -248,7 +252,8 @@ export const Selectors = {
     // Dynamic: model item by ID
     modelItem: (id: string): string => byTestId(`hf-model-item-${id}`),
     // Find model item by partial accessibilityLabel match (targets the TouchableOpacity)
-    modelItemByText: (text: string): string => byAccessibilityLabelContains(text),
+    modelItemByText: (text: string): string =>
+      byAccessibilityLabelContains(text),
   },
 
   // Model details/file cards
@@ -318,6 +323,38 @@ export const Selectors = {
       }
       // iOS: Use predicate string for nested element search
       return `-ios predicate string:name == "load-button"`;
+    },
+    // Download button element selector for use within a model card context
+    get downloadButtonElement(): string {
+      if (isAndroid()) {
+        return `.//android.widget.Button[contains(@resource-id, "download-button")]`;
+      }
+      return `-ios predicate string:name == "download-button"`;
+    },
+    // Cancel button element selector for use within a model card context.
+    // Filters to the Button class so it targets the clickable control rather
+    // than the surrounding "cancel-button-container" wrapper.
+    get cancelButtonElement(): string {
+      if (isAndroid()) {
+        return `.//android.widget.Button[contains(@resource-id, "cancel-button")]`;
+      }
+      return `-ios predicate string:name == "cancel-button"`;
+    },
+    // List-wide (NOT card-scoped) clickable Download/Cancel buttons — for
+    // enumerating every download control on the Models screen with $$ when the
+    // test should not pin a specific model (the device-rule list varies). Filter
+    // to the Button class so taps land on the control, not the wrapper View.
+    get anyDownloadButton(): string {
+      if (isAndroid()) {
+        return `//android.widget.Button[contains(@resource-id, "download-button")]`;
+      }
+      return `-ios predicate string:name == "download-button"`;
+    },
+    get anyCancelButton(): string {
+      if (isAndroid()) {
+        return `//android.widget.Button[contains(@resource-id, "cancel-button")]`;
+      }
+      return `-ios predicate string:name == "cancel-button"`;
     },
     get offloadButton(): string {
       return byTestId('offload-button');
@@ -484,21 +521,88 @@ export const Selectors = {
 
   // Thinking / generation settings
   thinking: {
+    // The toggle carries testID "thinking-toggle" AND a state-dependent
+    // accessibilityLabel. On iOS the testID becomes the element `name`, so the
+    // accessibility-id (`~label`) match no longer resolves — match the `label`
+    // attribute via predicate instead. On Android the label stays as
+    // content-desc, so `~label` still works.
     /** "Think" toggle button - when thinking is currently enabled */
     get toggleEnabled(): string {
-      return byAccessibilityLabel('Disable thinking mode');
+      if (isAndroid()) {
+        return byAccessibilityLabel('Disable thinking mode');
+      }
+      return '-ios predicate string:name == "thinking-toggle" AND label == "Disable thinking mode"';
     },
     /** "Think" toggle button - when thinking is currently disabled */
     get toggleDisabled(): string {
-      return byAccessibilityLabel('Enable thinking mode');
+      if (isAndroid()) {
+        return byAccessibilityLabel('Enable thinking mode');
+      }
+      return '-ios predicate string:name == "thinking-toggle" AND label == "Enable thinking mode"';
     },
+    // The ThinkingBubble header reads "Reasoning". Once content streams in, iOS
+    // may merge the header into a combined accessibility name alongside the
+    // reasoning text, so match by partial text rather than an exact label.
     /** "Reasoning" header text inside the ThinkingBubble */
     get bubble(): string {
-      return byText('Reasoning');
+      return byPartialText('Reasoning');
     },
     /** Chevron icon inside the ThinkingBubble */
     get chevronIcon(): string {
       return byTestId('chevron-icon');
+    },
+  },
+
+  // Context-limit banner + increase-context sheet
+  contextBanner: {
+    get warning(): string {
+      return byTestId('context-warning-banner');
+    },
+    get full(): string {
+      return byTestId('context-full-banner');
+    },
+    get remoteHedged(): string {
+      return byTestId('context-remote-hedged-banner');
+    },
+    get softCap(): string {
+      return byTestId('soft-cap-warning');
+    },
+    get meter(): string {
+      return byTestId('banner-meter');
+    },
+    get percent(): string {
+      return byTestId('banner-percent');
+    },
+    get dismiss(): string {
+      return byTestId('context-banner-dismiss');
+    },
+    get warningIncrease(): string {
+      return byTestId('context-warning-increase');
+    },
+    get fullIncrease(): string {
+      return byTestId('context-full-increase');
+    },
+    get fullNewChat(): string {
+      return byTestId('context-full-new-chat');
+    },
+    get palLoadHint(): string {
+      return byTestId('pal-load-hint-snackbar');
+    },
+    // Increase-context sheet
+    get sheetConfirm(): string {
+      return byTestId('increase-context-confirm');
+    },
+    get sheetCancel(): string {
+      return byTestId('increase-context-cancel');
+    },
+    get sheetSlider(): string {
+      return byTestId('increase-context-slider');
+    },
+    get sheetNoFit(): string {
+      return byTestId('increase-context-no-fit');
+    },
+    get sheetNewChat(): string {
+      return byTestId('increase-context-new-chat');
     },
   },
 
@@ -538,6 +642,23 @@ export const Selectors = {
     },
   },
 
+  // Per-model settings sheet (opened from a model card's settings button)
+  modelSettings: {
+    get isReasoningSwitch(): string {
+      return byTestId('reasoning-is-reasoning-switch');
+    },
+    get supportsEffortSwitch(): string {
+      return byTestId('reasoning-supports-effort-switch');
+    },
+    effortChip: (level: string): string => byTestId(`effort-chip-${level}`),
+  },
+
+  // User-selectable server-type dropdown (server details + remote model sheets)
+  serverType: {
+    dropdown: (): string => byTestId('server-type-dropdown'),
+    option: (value: string): string => byTestId(`server-type-option-${value}`),
+  },
+
   // Remote model sheet (add model from server)
   remoteModel: {
     get urlInput(): string {
@@ -548,6 +669,9 @@ export const Selectors = {
     },
     get apiKeyInput(): string {
       return byTestId('remote-apikey-input');
+    },
+    get timeoutInput(): string {
+      return byTestId('remote-timeout-input');
     },
     get addModelButton(): string {
       return byTestId('add-model-button');
@@ -561,6 +685,9 @@ export const Selectors = {
     },
     get apiKeyInput(): string {
       return byTestId('server-details-apikey-input');
+    },
+    get timeoutInput(): string {
+      return byTestId('server-details-timeout-input');
     },
     get removeButton(): string {
       return byTestId('remove-server-button');

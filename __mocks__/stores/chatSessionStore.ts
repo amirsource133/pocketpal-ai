@@ -1,4 +1,8 @@
 import {sessionFixtures} from '../../jest/fixtures/chatSessions';
+import type {
+  BannerVariant,
+  CompletionResultSnapshot,
+} from '../../src/utils/completionTypes';
 
 // Mock defaultCompletionSettings to avoid circular imports
 // This should match the actual defaultCompletionSettings from ChatSessionStore
@@ -32,6 +36,7 @@ export const mockChatSessionStore = {
   activeSessionId: 'session-1',
   newChatCompletionSettings: mockDefaultCompletionSettings,
   newChatThinkingOverride: undefined as boolean | undefined,
+  newChatReasoningEffort: undefined as string | undefined,
   isMigrating: false,
   migrationComplete: true,
   // Draft autosave
@@ -118,6 +123,14 @@ export const mockChatSessionStore = {
   appendToolCall: jest.fn().mockResolvedValue(undefined),
   appendToolOutcome: jest.fn().mockResolvedValue(undefined),
   finalizeActiveStep: jest.fn().mockResolvedValue(undefined),
+  // Context-limit banner state
+  lastCompletionResult: undefined as CompletionResultSnapshot | undefined,
+  dismissedBannerVariants: new Set<BannerVariant>(),
+  consecutiveFullFailures: 0,
+  palLoadHintSeen: new Set<string>(),
+  recordCompletionSnapshot: jest.fn(),
+  setBannerDismissed: jest.fn(),
+  markPalLoadHintSeen: jest.fn(),
 };
 
 Object.defineProperty(mockChatSessionStore, 'isGeneratingToolCall', {

@@ -3,9 +3,22 @@ import {CompletionParams as LlamaRNCompletionParams} from 'llama.rn';
 export type {ToolCall} from 'llama.rn';
 import type {ToolCall} from 'llama.rn';
 
-// Alias allows flexibility to switch API providers later
-// We should move towards OpenAI Compatible API Params
-export type ApiCompletionParams = LlamaRNCompletionParams;
+/**
+ * Reasoning intent carried internally on the completion params. Populated
+ * from the resolver by the store/hook layer; the wire shape is decided
+ * downstream (openai.ts for remote, useChatSession for local). Off is a
+ * best-effort hint only — never used to strip displayed reasoning.
+ */
+export interface ReasoningIntent {
+  enabled: boolean;
+  effort?: string;
+}
+
+// Alias allows flexibility to switch API providers later. The `reasoning`
+// carrier is a LOCAL intersection — the upstream llama.rn alias is not edited.
+export type ApiCompletionParams = LlamaRNCompletionParams & {
+  reasoning?: ReasoningIntent;
+};
 
 /**
  * App-specific completion parameters that are not part of the llama.rn API.
@@ -99,6 +112,38 @@ export interface CompletionResult {
   context_full?: boolean;
   interrupted?: boolean;
 }
+
+/**
+ * Normalised snapshot of a finished turn, written once at the completion
+ * boundary. Mirrored on the message metadata and on the session store so the
+ * banner resolver reads it without recomputing.
+ *
+ * `used` is `tokens_evaluated + tokens_predicted` — `tokens_cached` is not
+ * exposed at the engine boundary, so on prompt-cache-reuse turns this
+ * under-counts KV occupancy.
+ *
+ * `contextFull` is the OR of context_full / truncated / truncationLikely /
+ * (remote) finishReason === 'length', frozen at write time.
+ */
+export interface CompletionResultSnapshot {
+  content?: string;
+  reasoning_content?: string;
+  used: number;
+  contextFull: boolean;
+  tokensPredicted?: number;
+  finishReason?: string;
+  isRemote: boolean;
+}
+
+/**
+ * Variants the chat banner slot can resolve to, in precedence order.
+ */
+export type BannerVariant =
+  | 'context-full'
+  | 'context-warning'
+  | 'context-remote-hedged'
+  | 'html-soft-cap'
+  | 'none';
 
 /**
  * CompletionEngine interface formalizes the completion contract.

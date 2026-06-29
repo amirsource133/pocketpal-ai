@@ -1,5 +1,5 @@
 import * as RNFS from '@dr.pogodin/react-native-fs';
-import {makeAutoObservable, observable} from 'mobx';
+import {makeAutoObservable, observable, runInAction} from 'mobx';
 import {NativeEventEmitter, Platform} from 'react-native';
 
 import {
@@ -10,7 +10,7 @@ import {
 } from './types';
 
 import {Model} from '../../utils/types';
-import {formatBytes, hasEnoughSpace} from '../../utils';
+import {formatBytes, hasEnoughSpace, hfUserAgent} from '../../utils';
 import {uiStore} from '../../store';
 import NativeDownloadModule from '../../specs/NativeDownloadModule';
 import type {
@@ -20,10 +20,37 @@ import type {
 
 const TAG = 'DownloadManager';
 
+/**
+ * Signals a user-cancelled download (vs. a genuine failure) so callers can
+ * suppress it: no error surface, no follow-on work.
+ */
+export class DownloadCancelledError extends Error {
+  constructor(public readonly modelId: string) {
+    super(`Download cancelled for ${modelId}`);
+    this.name = 'DownloadCancelledError';
+  }
+}
+
+// The HF auth token must never leave huggingface.co. Download URLs are pinned to
+// HF at parse time, but this is a defense-in-depth gate so a token can never be
+// attached for any other host even if a non-HF URL ever reaches here.
+const isHuggingFaceUrl = (url: string | undefined): boolean => {
+  if (!url) {
+    return false;
+  }
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && parsed.host === 'huggingface.co';
+  } catch {
+    return false;
+  }
+};
+
 export class DownloadManager {
   private downloadJobs: DownloadMap;
   private callbacks: DownloadEventCallbacks = {};
   private eventEmitter: NativeEventEmitter | null = null;
+  private cancelledModelIds = new Set<string>();
 
   constructor() {
     console.log(`${TAG}: Initializing DownloadManager`);
@@ -95,9 +122,11 @@ export class DownloadManager {
         // );
 
         // Update job state
-        job.state.progress = progress;
-        job.lastBytesWritten = event.bytesWritten;
-        job.lastUpdateTime = currentTime;
+        runInAction(() => {
+          job.state.progress = progress;
+          job.lastBytesWritten = event.bytesWritten;
+          job.lastUpdateTime = currentTime;
+        });
 
         this.callbacks.onProgress?.(job.model.id, progress);
       });
@@ -111,19 +140,23 @@ export class DownloadManager {
 
         if (job) {
           // Set final state before removing
-          job.state.isDownloading = false;
-          job.state.progress = {
-            bytesDownloaded: job.state.progress?.bytesTotal || 0,
-            bytesTotal: job.state.progress?.bytesTotal || 0,
-            progress: 100,
-            speed: '0 B/s',
-            eta: '0 sec',
-            rawSpeed: 0,
-            rawEta: 0,
-          };
+          runInAction(() => {
+            job.state.isDownloading = false;
+            job.state.progress = {
+              bytesDownloaded: job.state.progress?.bytesTotal || 0,
+              bytesTotal: job.state.progress?.bytesTotal || 0,
+              progress: 100,
+              speed: '0 B/s',
+              eta: '0 sec',
+              rawSpeed: 0,
+              rawEta: 0,
+            };
+          });
           // Ensure callback is called before removing the job
           this.callbacks.onComplete?.(job.model.id);
-          this.downloadJobs.delete(job.model.id);
+          runInAction(() => {
+            this.downloadJobs.delete(job.model.id);
+          });
           console.log(`${TAG}: Removed completed job: ${job.model.id}`);
         } else {
           console.warn(
@@ -143,11 +176,15 @@ export class DownloadManager {
         );
 
         if (job) {
-          job.state.error = new Error(event.error);
-          job.state.isDownloading = false;
+          runInAction(() => {
+            job.state.error = new Error(event.error);
+            job.state.isDownloading = false;
+          });
           // Ensure callback is called before removing the job
           this.callbacks.onError?.(job.model.id, new Error(event.error));
-          this.downloadJobs.delete(job.model.id);
+          runInAction(() => {
+            this.downloadJobs.delete(job.model.id);
+          });
           console.log(`${TAG}: Removed failed job: ${job.model.id}`);
         } else {
           console.warn(
@@ -196,6 +233,13 @@ export class DownloadManager {
     return isDownloading;
   }
 
+  /** Reactive read of the in-flight download jobs. UI surfaces depend on this. */
+  get activeJobs(): DownloadJob[] {
+    return Array.from(this.downloadJobs.values()).filter(
+      j => j.state.isDownloading,
+    );
+  }
+
   getDownloadProgress(modelId: string): number {
     const progress =
       this.downloadJobs.get(modelId)?.state.progress?.progress || 0;
@@ -218,6 +262,11 @@ export class DownloadManager {
       console.log(`${TAG}: Download already in progress for model:`, model.id);
       return;
     }
+
+    // Only send the HF auth token to huggingface.co.
+    const effectiveAuthToken = isHuggingFaceUrl(model.downloadUrl)
+      ? authToken
+      : null;
 
     if (!model.downloadUrl) {
       console.error(`${TAG}: Model has no download URL`);
@@ -246,9 +295,13 @@ export class DownloadManager {
     }
 
     if (Platform.OS === 'ios') {
-      await this.startIOSDownload(model, destinationPath, authToken);
+      await this.startIOSDownload(model, destinationPath, effectiveAuthToken);
     } else {
-      await this.startAndroidDownload(model, destinationPath, authToken);
+      await this.startAndroidDownload(
+        model,
+        destinationPath,
+        effectiveAuthToken,
+      );
     }
   }
 
@@ -270,7 +323,9 @@ export class DownloadManager {
         lastUpdateTime: Date.now(),
       };
 
-      this.downloadJobs.set(model.id, downloadJob);
+      runInAction(() => {
+        this.downloadJobs.set(model.id, downloadJob);
+      });
       this.callbacks.onStart?.(model.id);
 
       // Create the download task
@@ -281,6 +336,7 @@ export class DownloadManager {
         discretionary: false,
         progressInterval: 800,
         headers: {
+          'User-Agent': hfUserAgent(),
           ...(authToken ? {Authorization: `Bearer ${authToken}`} : {}),
         },
         begin: res => {
@@ -302,7 +358,9 @@ export class DownloadManager {
             rawEta: 0,
           };
 
-          downloadJob.state.progress = progress;
+          runInAction(() => {
+            downloadJob.state.progress = progress;
+          });
           this.callbacks.onProgress?.(model.id, progress);
         },
         progress: res => {
@@ -336,9 +394,11 @@ export class DownloadManager {
             rawEta: etaSeconds,
           };
 
-          job.state.progress = progress;
-          job.lastBytesWritten = res.bytesWritten;
-          job.lastUpdateTime = currentTime;
+          runInAction(() => {
+            job.state.progress = progress;
+            job.lastBytesWritten = res.bytesWritten;
+            job.lastUpdateTime = currentTime;
+          });
 
           this.callbacks.onProgress?.(model.id, progress);
         },
@@ -351,7 +411,9 @@ export class DownloadManager {
       );
 
       // Add job to map after setting jobId
-      this.downloadJobs.set(model.id, downloadJob);
+      runInAction(() => {
+        this.downloadJobs.set(model.id, downloadJob);
+      });
 
       // Wait for the download to complete
       const result = await downloadResult.promise;
@@ -361,7 +423,12 @@ export class DownloadManager {
           `${TAG}: Download completed successfully for ID: ${model.id}`,
         );
         this.callbacks.onComplete?.(model.id);
-        this.downloadJobs.delete(model.id);
+        runInAction(() => {
+          this.downloadJobs.delete(model.id);
+        });
+        // Cancel may race with a download that already completed; clear any
+        // stale marker so it can't suppress a later genuine failure.
+        this.cancelledModelIds.delete(model.id);
       } else {
         console.error(
           `${TAG}: Download failed with status: ${result.statusCode} for ID: ${model.id}`,
@@ -369,14 +436,26 @@ export class DownloadManager {
         throw new Error(`Download failed with status: ${result.statusCode}`);
       }
     } catch (error) {
-      console.error(`${TAG}: Download failed for ID: ${model.id}:`, error);
-      const job = this.downloadJobs.get(model.id);
-      if (job) {
-        job.state.error =
-          error instanceof Error ? error : new Error(String(error));
-        job.state.isDownloading = false;
+      // RNFS.stopDownload aborts the task, rejecting this promise. A user
+      // cancel is not a failure — surface it as a distinct cancellation.
+      if (this.cancelledModelIds.delete(model.id)) {
+        console.log(`${TAG}: Download cancelled by user for ID: ${model.id}`);
+        runInAction(() => {
+          this.downloadJobs.delete(model.id);
+        });
+        throw new DownloadCancelledError(model.id);
       }
-      this.downloadJobs.delete(model.id);
+
+      console.error(`${TAG}: Download failed for ID: ${model.id}:`, error);
+      runInAction(() => {
+        const job = this.downloadJobs.get(model.id);
+        if (job) {
+          job.state.error =
+            error instanceof Error ? error : new Error(String(error));
+          job.state.isDownloading = false;
+        }
+        this.downloadJobs.delete(model.id);
+      });
       this.callbacks.onError?.(
         model.id,
         error instanceof Error ? error : new Error(String(error)),
@@ -424,7 +503,9 @@ export class DownloadManager {
       console.log(`${TAG}: Download started with ID: ${response.downloadId}`);
 
       // Add job to map after getting download ID
-      this.downloadJobs.set(model.id, downloadJob);
+      runInAction(() => {
+        this.downloadJobs.set(model.id, downloadJob);
+      });
       this.callbacks.onStart?.(model.id);
     } catch (error) {
       console.error(`${TAG}: Failed to start Android download:`, {
@@ -432,13 +513,15 @@ export class DownloadManager {
         error: error instanceof Error ? error.message : String(error),
       });
 
-      const job = this.downloadJobs.get(model.id);
-      if (job) {
-        job.state.error =
-          error instanceof Error ? error : new Error(String(error));
-        job.state.isDownloading = false;
-      }
-      this.downloadJobs.delete(model.id);
+      runInAction(() => {
+        const job = this.downloadJobs.get(model.id);
+        if (job) {
+          job.state.error =
+            error instanceof Error ? error : new Error(String(error));
+          job.state.isDownloading = false;
+        }
+        this.downloadJobs.delete(model.id);
+      });
       this.callbacks.onError?.(
         model.id,
         error instanceof Error ? error : new Error(String(error)),
@@ -451,6 +534,9 @@ export class DownloadManager {
     console.log(`${TAG}: Attempting to cancel download:`, modelId);
     const job = this.downloadJobs.get(modelId);
     if (job) {
+      // Mark as user-cancelled so the iOS download promise rejection is
+      // recognised as a cancel, not surfaced as a "Download Failed" error.
+      this.cancelledModelIds.add(modelId);
       try {
         if (Platform.OS === 'ios') {
           console.log(
@@ -466,6 +552,9 @@ export class DownloadManager {
         ) {
           console.log(`${TAG}: Cancelling Android download:`, modelId);
           await NativeDownloadModule.cancelDownload(job.downloadId);
+          // Android cancel emits no failure event, so nothing consumes the
+          // cancelled-id marker — clear it here to avoid leaking entries.
+          this.cancelledModelIds.delete(modelId);
         }
 
         // Clean up the partial download file
@@ -498,14 +587,17 @@ export class DownloadManager {
         }
 
         // Update state and remove job
-        job.state.isDownloading = false;
-        this.downloadJobs.delete(modelId);
+        runInAction(() => {
+          job.state.isDownloading = false;
+          this.downloadJobs.delete(modelId);
+        });
         console.log(`${TAG}: Removed cancelled job:`, modelId);
       } catch (err) {
         console.error(`${TAG}: Error cancelling download:`, {
           modelId,
           error: err instanceof Error ? err.message : String(err),
         });
+        this.cancelledModelIds.delete(modelId);
       }
     } else {
       console.warn(`${TAG}: No download job found to cancel:`, modelId);
@@ -521,6 +613,7 @@ export class DownloadManager {
       this.eventEmitter.removeAllListeners('onDownloadFailed');
     }
     this.downloadJobs.clear();
+    this.cancelledModelIds.clear();
     console.log(`${TAG}: Download jobs cleared`);
   }
 
@@ -592,7 +685,9 @@ export class DownloadManager {
         };
 
         // Add to downloadJobs map
-        this.downloadJobs.set(model.id, downloadJob);
+        runInAction(() => {
+          this.downloadJobs.set(model.id, downloadJob);
+        });
         console.log(
           `${TAG}: Restored download job for model: ${model.id}, progress: ${progress}%`,
         );

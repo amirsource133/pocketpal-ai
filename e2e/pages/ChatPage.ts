@@ -54,10 +54,23 @@ export class ChatPage extends BasePage {
   }
 
   /**
-   * Open the navigation drawer by tapping menu button
+   * Open the navigation drawer by tapping the menu button.
+   *
+   * The single tap is occasionally missed on Android (the drawer never opens),
+   * which then fails the downstream waitForOpen. Tap, verify the drawer
+   * actually opened (the Pals item appears), and retry the tap if it didn't —
+   * checking "already open" first so a retry can't toggle an open drawer shut.
    */
   async openDrawer(): Promise<void> {
-    await this.tap(Selectors.chat.menuButton);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (await this.isElementDisplayed(Selectors.drawer.palsTab, 1000)) {
+        return;
+      }
+      await this.tap(Selectors.chat.menuButton);
+      if (await this.isElementDisplayed(Selectors.drawer.palsTab, 5000)) {
+        return;
+      }
+    }
   }
 
   /**
@@ -130,17 +143,87 @@ export class ChatPage extends BasePage {
   }
 
   /**
-   * Tap the thinking toggle to switch its state
+   * Dismiss the TTS "Voices" setup sheet if it is open.
+   * The VoiceChip (TTS control) sits next to the thinking toggle in the chat
+   * input. When no voice is configured the chip is expanded and can overlap the
+   * toggle; a tap on the overlap opens this sheet instead of flipping the
+   * toggle (#764). No-op when absent.
+   */
+  async dismissVoicesSheetIfPresent(): Promise<void> {
+    try {
+      const closeBtn = browser.$(Selectors.common.sheetCloseButton);
+      if ((await closeBtn.isExisting()) && (await closeBtn.isDisplayed())) {
+        await closeBtn.click();
+        await browser.pause(400);
+      }
+    } catch {
+      // No sheet open - continue
+    }
+  }
+
+  /**
+   * Tap the thinking toggle to switch its state.
+   *
+   * The TTS VoiceChip can overlap the thinking toggle on EITHER side depending
+   * on pal-name length and screen geometry (confirmed across the device fleet,
+   * #764). A tap on the overlap hits the chip and opens the "Voices" sheet
+   * instead of flipping the toggle. So: measure both elements, tap the part of
+   * the toggle the chip does NOT cover, dismiss any sheet that still slips
+   * open, and verify the toggle actually flipped — retrying the other clear
+   * side if it did not.
    */
   async tapThinkingToggle(): Promise<void> {
-    // Try the enabled state first, then disabled
-    const enabledEl = browser.$(Selectors.thinking.toggleEnabled);
-    if (await enabledEl.isExisting()) {
-      await enabledEl.click();
-    } else {
-      await this.tap(Selectors.thinking.toggleDisabled);
+    const before = await this.isThinkingEnabled();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await this.dismissVoicesSheetIfPresent();
+      const sel = (await browser
+        .$(Selectors.thinking.toggleEnabled)
+        .isExisting())
+        ? Selectors.thinking.toggleEnabled
+        : Selectors.thinking.toggleDisabled;
+      const el = browser.$(sel);
+      if (!(await el.isExisting())) {
+        return;
+      }
+      const loc = await el.getLocation();
+      const size = await el.getSize();
+      let x = Math.round(loc.x + size.width / 2);
+      const y = Math.round(loc.y + size.height / 2);
+      const chip = browser.$(byTestId('voicechip'));
+      if (await chip.isExisting().catch(() => false)) {
+        const cloc = await chip.getLocation();
+        const csize = await chip.getSize();
+        const leftClear = cloc.x - loc.x;
+        const rightClear = loc.x + size.width - (cloc.x + csize.width);
+        if (Math.max(leftClear, rightClear) > 4) {
+          // attempt 0 → widest clear side; attempt 1 → the other side.
+          const useLeft =
+            attempt === 0 ? leftClear >= rightClear : leftClear < rightClear;
+          x = useLeft
+            ? Math.round(loc.x + Math.max(4, leftClear / 2))
+            : Math.round(cloc.x + csize.width + Math.max(4, rightClear / 2));
+        }
+      }
+      // Clamp the tap inside the toggle bounds. The chip-avoidance offset above
+      // can otherwise compute an x just past an edge, so the tap misses the
+      // button and the toggle never flips.
+      x = Math.min(
+        loc.x + size.width - 4,
+        Math.max(loc.x + 4, x),
+      );
+      await browser
+        .action('pointer', {parameters: {pointerType: 'touch'}})
+        .move({x, y})
+        .down()
+        .pause(60)
+        .up()
+        .perform();
+      await browser.pause(400);
+      await this.dismissVoicesSheetIfPresent();
+      if ((await this.isThinkingEnabled()) !== before) {
+        return; // toggle flipped
+      }
     }
-    await browser.pause(300);
   }
 
   /**
@@ -257,18 +340,28 @@ export class ChatPage extends BasePage {
   async selectPal(palName: string): Promise<void> {
     // The picker shows Models tab by default.
     // Swipe right to reach the Pals tab (Pals is to the left of Models).
-    await Gestures.swipe({
-      startXPercent: 0.2,
-      startYPercent: 0.7,
-      endXPercent: 0.8,
-      endYPercent: 0.7,
-      duration: 300,
-    });
-    await browser.pause(500);
-
-    // Now find and tap the pal using partial text match
-    // (Pressable may combine child text labels into one accessibility element)
+    // Swipe right to reach the Pals tab, then find the pal by partial text.
+    // The first swipe can land short / the list can still be settling, so
+    // retry the swipe+lookup before giving up (the pal-picker tab transition
+    // is gesture-driven and flaky on a fresh model load).
     const palItem = browser.$(byPartialText(palName));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await Gestures.swipe({
+        startXPercent: 0.2,
+        startYPercent: 0.7,
+        endXPercent: 0.8,
+        endYPercent: 0.7,
+        duration: 300,
+      });
+      await browser.pause(500);
+      const found = await palItem
+        .waitForDisplayed({timeout: 5000})
+        .then(() => true)
+        .catch(() => false);
+      if (found) {
+        break;
+      }
+    }
     await palItem.waitForDisplayed({timeout: 5000});
     await palItem.click();
     await browser.pause(500);

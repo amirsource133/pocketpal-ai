@@ -5,8 +5,13 @@ import {palRepository} from '../../repositories/PalRepository';
 import type {Pal} from '../../types/pal';
 import type {PalsHubPal} from '../../types/palshub';
 import * as imageUtils from '../../utils/imageUtils';
+import {resolveHFModelForDownload} from '../../utils/hfResolve';
+import {LOOKIE_DEFAULT_MODEL} from '../builtinPalModels';
 
 // Mock dependencies
+jest.mock('../../utils/hfResolve', () => ({
+  resolveHFModelForDownload: jest.fn(),
+}));
 jest.mock('../../repositories/PalRepository', () => ({
   palRepository: {
     getAllPals: jest.fn(),
@@ -132,6 +137,145 @@ describe('PalStore', () => {
       );
 
       consoleSpy.mockRestore();
+    });
+
+    it('creates the Lookie pal from the offline constant without a network resolve', async () => {
+      (palRepository.getAllPals as jest.Mock).mockResolvedValue([]);
+      (palRepository.createPal as jest.Mock).mockImplementation(
+        async (palData: any) => ({
+          ...palData,
+          id: 'lookie-id',
+          created_at: 'now',
+          updated_at: 'now',
+        }),
+      );
+
+      // eslint-disable-next-line no-new
+      new (palStore.constructor as any)();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const lookieCall = (palRepository.createPal as jest.Mock).mock.calls.find(
+        call => call[0]?.name === 'Lookie',
+      );
+
+      expect(lookieCall).toBeDefined();
+      expect(lookieCall![0].defaultModel).toBe(LOOKIE_DEFAULT_MODEL);
+      // No HF resolve / network call at pal init.
+      expect(resolveHFModelForDownload).not.toHaveBeenCalled();
+    });
+
+    it('does not recreate the Lookie pal if one already exists', async () => {
+      const existingLookie: Pal = {
+        ...mockPal,
+        id: 'existing-lookie',
+        name: 'Lookie',
+        capabilities: {video: true},
+      } as Pal;
+      (palRepository.getAllPals as jest.Mock).mockResolvedValue([
+        existingLookie,
+      ]);
+
+      // eslint-disable-next-line no-new
+      new (palStore.constructor as any)();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const lookieCreate = (
+        palRepository.createPal as jest.Mock
+      ).mock.calls.find(call => call[0]?.name === 'Lookie');
+      expect(lookieCreate).toBeUndefined();
+      expect(resolveHFModelForDownload).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Pip seeding', () => {
+    const callInitializePipPal = async () =>
+      (palStore as any).initializePipPal();
+
+    beforeEach(() => {
+      runInAction(() => {
+        palStore.pals = [];
+      });
+      (palRepository.createPal as jest.Mock).mockImplementation(
+        async (palData: any) => ({
+          ...palData,
+          id: `pip-${Math.random().toString(36).slice(2, 8)}`,
+          created_at: '2026-05-26T00:00:00Z',
+          updated_at: '2026-05-26T00:00:00Z',
+        }),
+      );
+    });
+
+    it('seeds Pip when absent', async () => {
+      await callInitializePipPal();
+      const pip = palStore.pals.find(
+        p => p.name === 'Pip' && p.source === 'local',
+      );
+      expect(pip).toBeDefined();
+      expect(pip?.type).toBe('local');
+      expect(pip?.defaultModel).toBeUndefined();
+      expect(palRepository.createPal).toHaveBeenCalledTimes(1);
+    });
+
+    it('is a no-op when Pip is already present', async () => {
+      await callInitializePipPal();
+      (palRepository.createPal as jest.Mock).mockClear();
+      await callInitializePipPal();
+      const pipCount = palStore.pals.filter(
+        p => p.name === 'Pip' && p.source === 'local',
+      ).length;
+      expect(pipCount).toBe(1);
+      expect(palRepository.createPal).not.toHaveBeenCalled();
+    });
+
+    it('preserves an existing Pip record (including defaultModel) on re-init', async () => {
+      const boundModel = {
+        id: 'some-bound-model',
+        name: 'Some Bound Model',
+      } as any;
+      const existingPip: Pal = {
+        ...mockPal,
+        id: 'pip-existing',
+        name: 'Pip',
+        source: 'local',
+        type: 'local',
+        defaultModel: boundModel,
+      } as any;
+      runInAction(() => {
+        palStore.pals = [existingPip];
+      });
+
+      await callInitializePipPal();
+
+      const pip = palStore.pals.find(
+        p => p.name === 'Pip' && p.source === 'local',
+      );
+      expect(pip).toBeDefined();
+      expect(pip?.id).toBe('pip-existing');
+      // defaultModel content is preserved across re-init (MobX wraps
+      // observed objects in Proxies, so Object.is equality is brittle;
+      // value equality verifies the field wasn't cleared or rewritten).
+      expect(pip?.defaultModel).toEqual(boundModel);
+      expect(palRepository.createPal).not.toHaveBeenCalled();
+    });
+
+    it('coexists with Lookie regardless of order (idempotent)', async () => {
+      const lookie: Pal = {
+        ...mockPal,
+        id: 'lookie-1',
+        name: 'Lookie',
+        source: 'local',
+        type: 'local',
+        capabilities: {video: true},
+      } as any;
+      runInAction(() => {
+        palStore.pals = [lookie];
+      });
+
+      await callInitializePipPal();
+      await callInitializePipPal();
+
+      const names = palStore.pals.map(p => p.name).sort();
+      expect(names).toEqual(['Lookie', 'Pip']);
     });
   });
 

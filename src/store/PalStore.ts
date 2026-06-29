@@ -19,17 +19,18 @@
 import {v4 as uuidv4} from 'uuid';
 import {makeAutoObservable, runInAction} from 'mobx';
 
-import {fetchModelInfo, fetchModelFilesDetails} from '../api/hf';
-
 import {HF_DOMAIN} from '../config/urls';
 
 import {palRepository} from '../repositories/PalRepository';
 
 import {hfAsModel} from '../utils';
+import {resolveHFModelForDownload} from '../utils/hfResolve';
 import {isUSStorefront} from '../utils/region';
 import {palsHubService} from '../services';
 import {registerDefaultTalents} from '../services/talents';
-import {defaultModels} from './defaultModels';
+import {LOOKIE_DEFAULT_MODEL} from './builtinPalModels';
+import {chatTemplates} from '../utils/chat';
+import {defaultCompletionParams} from '../utils/completionSettingsVersions';
 import {parsePalsHubTemplate} from '../utils/palshub-template-parser';
 import {getDisplayNameFromFilename} from '../utils/formatters';
 
@@ -42,8 +43,7 @@ import type {
 } from '../types/palshub';
 
 import {ModelOrigin} from '../utils/types';
-import {createSiblingsFromFileDetails} from '../utils/hf';
-import type {Model, HuggingFaceModel, ModelFile} from '../utils/types';
+import type {Model} from '../utils/types';
 import {downloadPalThumbnail, deletePalThumbnail} from '../utils/imageUtils';
 
 class PalStore {
@@ -88,6 +88,9 @@ class PalStore {
       // Initialize Lookie pal after database is loaded
       await this.initializeLookiePal();
 
+      // Initialize Pip pal (idempotent — see initializePipPal).
+      await this.initializePipPal();
+
       // Register talent engines (idempotent)
       registerDefaultTalents();
 
@@ -110,6 +113,15 @@ class PalStore {
   }
 
   private async checkRegion() {
+    // E2E builds have no App Store storefront, so force the US branch to
+    // exercise the buy button. Compiled out of prod (`__E2E__` is false).
+    if (__E2E__) {
+      runInAction(() => {
+        this.isUSRegion = true;
+      });
+      return;
+    }
+
     try {
       const isUS = await isUSStorefront();
       runInAction(() => {
@@ -307,82 +319,19 @@ class PalStore {
     modelRef: ModelReference,
   ): Promise<Model> => {
     try {
-      // Fetch complete model information from HF API
-      const [modelInfo, fileDetails] = await Promise.all([
-        fetchModelInfo({
-          repoId: modelRef.repo_id,
-          full: true,
-        }).catch((error: any) => {
-          console.warn('Failed to fetch model info:', error);
-          return null;
-        }),
-        fetchModelFilesDetails(modelRef.repo_id).catch((error: any) => {
-          console.warn('Failed to fetch file details:', error);
-          return [];
-        }),
-      ]);
-      const siblings = createSiblingsFromFileDetails(
+      // Resolve via the shared canonical chain so the matched file carries a
+      // populated /resolve/ download URL. modelRef values relax strictness when
+      // the HF API response is incomplete (the PalsHub flow already has them).
+      const {hfModel, modelFile} = await resolveHFModelForDownload(
         modelRef.repo_id,
-        fileDetails,
+        modelRef.filename,
+        undefined,
+        {
+          author: modelRef.author,
+          size: modelRef.size,
+          downloadUrl: modelRef.downloadUrl,
+        },
       );
-
-      // Find the specific file details for our model
-      const modelFileDetail = siblings.find(
-        (file: any) => file.rfilename === modelRef.filename,
-      );
-      // Create ModelFile object
-      const modelFile: ModelFile = {
-        rfilename: modelFileDetail?.rfilename || modelRef.filename,
-        size: modelFileDetail?.size || modelRef.size,
-        url: modelFileDetail?.url || modelRef.downloadUrl,
-        oid: modelFileDetail?.oid,
-        lfs: modelFileDetail?.lfs,
-      };
-
-      // Use fetched model info or create fallback HuggingFaceModel object
-      const hfModel: HuggingFaceModel = modelInfo
-        ? {
-            // Use fetched model info with fallbacks for required fields
-            _id: modelInfo._id || modelRef.repo_id,
-            id: modelInfo.id || modelRef.repo_id,
-            author: modelInfo.author || modelRef.author,
-            gated: modelInfo.gated || false,
-            inference: modelInfo.inference || 'cold',
-            lastModified: modelInfo.lastModified || new Date().toISOString(),
-            likes: modelInfo.likes || 0,
-            trendingScore: modelInfo.trendingScore || 0,
-            private: modelInfo.private || false,
-            sha: modelInfo.sha || '',
-            downloads: modelInfo.downloads || 0,
-            tags: modelInfo.tags || [],
-            library_name: modelInfo.library_name || '',
-            createdAt: modelInfo.createdAt || new Date().toISOString(),
-            model_id: modelInfo.model_id || modelRef.repo_id,
-            url: modelInfo.url || `${HF_DOMAIN}/${modelRef.repo_id}`,
-            specs: modelInfo.specs,
-            siblings: siblings,
-          }
-        : {
-            // Fallback when modelInfo is null
-            _id: modelRef.repo_id,
-            id: modelRef.repo_id,
-            author: modelRef.author,
-            gated: false,
-            inference: 'cold',
-            lastModified: new Date().toISOString(),
-            likes: 0,
-            trendingScore: 0,
-            private: false,
-            sha: '',
-            downloads: 0,
-            tags: [],
-            library_name: '',
-            createdAt: new Date().toISOString(),
-            model_id: modelRef.repo_id,
-            url: `${HF_DOMAIN}/${modelRef.repo_id}`,
-            specs: undefined,
-            siblings: siblings,
-          };
 
       // Use the existing hfAsModel function to create a complete Model object
       return hfAsModel(hfModel, modelFile);
@@ -398,11 +347,14 @@ class PalStore {
    * Creates a basic Model object from ModelReference (fallback when HF API fails)
    */
   private createBasicModelFromReference = (modelRef: any): Model => {
-    // Use default model as template for settings
-    const defaultModel = defaultModels[0];
-
     // Extract model name from filename (remove .gguf extension)
     const modelName = getDisplayNameFromFilename(modelRef.filename);
+
+    // Degraded fallback path: use the generic default chat template and
+    // completion params (the GGUF-embedded template is applied at load time).
+    const chatTemplate = {...chatTemplates.default};
+    const completionSettings = {...defaultCompletionParams};
+    const stopWords = completionSettings.stop ?? [];
 
     return {
       id: `${modelRef.repo_id}/${modelRef.filename}`,
@@ -417,12 +369,12 @@ class PalStore {
       filename: modelRef.filename,
       isLocal: false,
       origin: ModelOrigin.HF,
-      defaultChatTemplate: {...defaultModel.defaultChatTemplate},
-      chatTemplate: {...defaultModel.chatTemplate},
-      defaultCompletionSettings: {...defaultModel.defaultCompletionSettings},
-      completionSettings: {...defaultModel.completionSettings},
-      defaultStopWords: [...(defaultModel.defaultStopWords || [])],
-      stopWords: [...(defaultModel.stopWords || [])],
+      defaultChatTemplate: {...chatTemplate},
+      chatTemplate: {...chatTemplate},
+      defaultCompletionSettings: {...completionSettings},
+      completionSettings: {...completionSettings},
+      defaultStopWords: [...stopWords],
+      stopWords: [...stopWords],
     };
   };
 
@@ -746,13 +698,8 @@ class PalStore {
       if (!lookiePal) {
         console.log('Creating default Lookie pal...');
 
-        // Find the default SmolVLM model directly from defaultModels
-        // This avoids timing issues with ModelStore initialization
-        const defaultModelId =
-          'ggml-org/SmolVLM-500M-Instruct-GGUF/SmolVLM-500M-Instruct-Q8_0.gguf';
-        const defaultModel = defaultModels.find(
-          model => model.id === defaultModelId,
-        );
+        // Offline constant — no network resolve at pal init.
+        const defaultModel = LOOKIE_DEFAULT_MODEL;
 
         // Create the Lookie pal with all the original properties
         const palData: Omit<Pal, 'id' | 'created_at' | 'updated_at'> = {
@@ -787,6 +734,45 @@ class PalStore {
       }
     } catch (error) {
       console.error('Error initializing Lookie pal:', error);
+    }
+  }
+
+  /**
+   * Initialize the default "Pip" recommended pal if it doesn't exist.
+   *
+   * Idempotent: a re-entry never overwrites an existing Pip record, so a
+   * `defaultModel` bound from a prior session (e.g. by the onboarding
+   * recommended-pal picker) survives subsequent app starts.
+   */
+  private async initializePipPal(): Promise<void> {
+    try {
+      const existing = this.pals.find(
+        p => p.name === 'Pip' && p.source === 'local',
+      );
+      if (existing) {
+        return;
+      }
+
+      const palData: Omit<Pal, 'id' | 'created_at' | 'updated_at'> = {
+        type: 'local',
+        name: 'Pip',
+        description:
+          'A friendly general-purpose pal that runs entirely on your phone.',
+        systemPrompt:
+          'You are Pip, a friendly and helpful assistant who runs locally on the user’s phone. Keep replies concise and warm.',
+        isSystemPromptChanged: false,
+        useAIPrompt: false,
+        defaultModel: undefined,
+        parameters: {},
+        parameterSchema: [],
+        capabilities: {},
+        color: ['#0E0D0C', '#FAFAFA'],
+        source: 'local',
+      };
+
+      await this.addPal(palData);
+    } catch (error) {
+      console.error('Error initializing Pip pal:', error);
     }
   }
 }
