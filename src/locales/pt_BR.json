@@ -31,7 +31,8 @@
     "ok": "OK",
     "close": "Fechar",
     "clear": "Limpar Tudo",
-    "gallery": "Galeria"
+    "gallery": "Galeria",
+    "noResults": "Nenhum resultado"
   },
   "settings": {
     "modelInitializationSettings": "Configurações de Inicialização do Modelo",
@@ -163,7 +164,48 @@
     "enterUrlManually": "Inserir URL manualmente",
     "manageServers": "Gerenciar Servidores",
     "serverType": "Tipo de Servidor",
-    "serverTypeHelp": "Detectado automaticamente; altere se estiver errado."
+    "serverTypeHelp": "Detectado automaticamente; altere se estiver errado.",
+    "internetSearch": {
+      "title": "Busca na internet",
+      "description": "Deixe os Pals pesquisarem na web com as próprias ferramentas. Use sua própria chave de API — o PocketPal nunca guarda suas chaves nem encaminha suas consultas.",
+      "providerLabel": "Provedor de busca",
+      "providerGated": "Em breve",
+      "keyLabel": "Chave de API",
+      "keyIsSet": "Chave configurada para {{provider}}.",
+      "keyNotSet": "Nenhuma chave configurada para {{provider}}.",
+      "setKeyButton": "Definir chave",
+      "updateKeyButton": "Atualizar chave",
+      "clearKeyButton": "Limpar chave",
+      "keyInputPlaceholder": "Cole sua chave de API do {{provider}}",
+      "keyUpdateError": "Não foi possível atualizar a chave. Tente novamente.",
+      "showKeyAccessibilityLabel": "Mostrar chave de API",
+      "hideKeyAccessibilityLabel": "Ocultar chave de API",
+      "resultCountLabel": "Resultados por busca",
+      "resultCountDescription": "Menos resultados deixam mais espaço no contexto do modelo.",
+      "consentTitle": "As buscas saem do seu dispositivo",
+      "consentDescription": "Quando um Pal faz uma busca na web, sua consulta é enviada ao provedor selecionado pela internet. Quando um Pal lê uma página, a URL e o conteúdo da página podem, em vez disso, ser enviados a um serviço de leitura padrão (r.jina.ai) caso o provedor selecionado não tenha um leitor nativo. Chaves e consultas nunca são enviadas ao PocketPal.",
+      "consentAccept": "Entendi",
+      "consentRequired": "Aceite o aviso acima para definir uma chave e ativar a busca.",
+      "consentGivenTitle": "A busca na web está ativada",
+      "consentGivenDescription": "As consultas e leituras de página podem sair do seu dispositivo, conforme descrito acima.",
+      "consentRevoke": "Revogar"
+    },
+    "languageSheetTitle": "Idioma",
+    "languageSearchPlaceholder": "Pesquisar idiomas",
+    "speculativeDecoding": "Decodificação Especulativa",
+    "speculativeDecodingDescription": "Use um pequeno modelo de rascunho (ou um modelo MTP embutido) para prever tokens e acelerar a geração. Experimental.",
+    "speculativeNotMTPCapable": "O modelo ativo não é compatível com decodificação especulativa e nenhum modelo de rascunho compatível está pareado, então isso permanece desativado para ele, sem efeito. É aplicado automaticamente a modelos compatíveis.",
+    "speculativeDraftModel": "Modelo de Rascunho",
+    "speculativeDraftModelDescription": "Rascunha tokens para o modelo ativo.",
+    "speculativeDraftModelNone": "Nenhum (MTP embutido)",
+    "speculativeDraftModelIgnoredOverridden": "O modelo ativo já vem com seu próprio modelo de rascunho, então esta escolha é ignorada.",
+    "speculativeDraftModelIgnoredIncompatible": "Este modelo de rascunho não é compatível com o modelo ativo, então é ignorado.",
+    "speculativeDraftModelIgnoredNotCapable": "Este modelo não possui camadas de rascunho, então não pode ser usado como modelo de rascunho.",
+    "speculativeDraftKeyCacheType": "Tipo de Cache de Chave do Rascunho",
+    "speculativeDraftValueCacheType": "Tipo de Cache de Valor do Rascunho",
+    "speculativeDraftNGpuLayers": "Camadas de GPU do Rascunho",
+    "speculativeDraftNGpuLayersDescription": "Número de camadas do modelo de rascunho a descarregar para a GPU.",
+    "speculativeDraftCacheTypeInactiveDescription": "Aplicado quando a decodificação especulativa estiver em execução."
   },
   "memory": {
     "shortWarning": "Aviso de Memória",
@@ -359,7 +401,11 @@
         "author": "Autor",
         "requiresProjectionModel": "Requer modelo de projeção",
         "downloadProjectionModel": "Baixar modelo de projeção",
-        "viewModelCardOnHuggingFace": "Ver Ficha do Modelo no Hugging Face"
+        "viewModelCardOnHuggingFace": "Ver Ficha do Modelo no Hugging Face",
+        "visionSupported": "Compatível",
+        "visionNotSupported": "Não compatível",
+        "visionUnknown": "Desconhecido",
+        "draftOnlyReason": "Modelo apenas de rascunho. Selecione-o em Configurações → Decodificação especulativa."
       },
       "accessibility": {
         "expandDetails": "Expandir detalhes",
@@ -420,7 +466,9 @@
       "multilingual": "Multilíngue",
       "rewriting": "Reescrita",
       "creativity": "Escrita criativa",
-      "vision": "Visão"
+      "vision": "Visão",
+      "mtp": "Especulativo (MTP)",
+      "mtpDraft": "Rascunho especulativo"
     }
   },
   "completionParams": {
@@ -517,7 +565,8 @@
       "tokensPerSec": "{{value}} tokens/seg",
       "ttft": "{{value}}ms TTFT",
       "interrupted": "Interrompido",
-      "truncated": "Cortado — provavelmente o contexto está cheio"
+      "truncated": "Cortado — provavelmente o contexto está cheio",
+      "draftAccepted": "rascunho: {{accepted}}/{{total}} ({{pct}}%)"
     },
     "exportUtils": {
       "fileSaved": "Arquivo Salvo",
@@ -723,7 +772,8 @@
       "exportCurrentSession": "Exportar sessão atual",
       "exportAllSessions": "Exportar todas as sessões",
       "exportChatSession": "Exportar sessão de chat",
-      "importSessions": "Importar sessões"
+      "importSessions": "Importar sessões",
+      "exportCurrentSessionMarkdown": "Exportar como Markdown"
     },
     "hfTokenSheet": {
       "title": "Token do Hugging Face",
@@ -800,12 +850,16 @@
       "talentNames": {
         "render_html": "Pré-visualização de HTML",
         "calculate": "Expressões matemáticas",
-        "datetime": "Data e hora"
+        "datetime": "Data e hora",
+        "web_search": "Busca na web",
+        "read_url": "Ler página da web"
       },
       "talentDescriptions": {
         "render_html": "Renderizar documentos HTML diretamente no chat",
         "calculate": "Avaliar expressões matemáticas",
-        "datetime": "Obter a data e hora atuais"
+        "datetime": "Obter a data e hora atuais",
+        "web_search": "Pesquisar informações atualizadas na internet (requer chave de API nas Configurações)",
+        "read_url": "Ler o conteúdo completo de uma página da web (requer chave de API nas Configurações)"
       },
       "greeting": {
         "sectionLabel": "Saudação",
@@ -948,8 +1002,11 @@
         "threeWeeksAgo": "Há 3 semanas",
         "fourWeeksAgo": "Há 4 semanas",
         "lastMonth": "Mês passado",
-        "older": "Mais antigos"
-      }
+        "older": "Mais antigos",
+        "pinned": "Fixadas"
+      },
+      "pin": "Fixar",
+      "unpin": "Desafixar"
     },
     "usageStats": {
       "tooltip": {
@@ -1179,7 +1236,19 @@
     "generatingPreview": "Gerando pré-visualização… ({{tokens}} tokens)",
     "generatingPreviewPending": "Gerando pré-visualização…",
     "toolUsedChip": "usou {{name}}",
-    "toolErrorBlock": "{{name}} falhou"
+    "toolErrorBlock": "{{name}} falhou",
+    "webSearch": {
+      "searched": "Pesquisou: {{query}}",
+      "noResults": "Nenhum resultado",
+      "noResultsFor": "Nenhum resultado para {{query}}",
+      "resultsCount": "{{count}} resultados",
+      "resultsCountOne": "1 resultado",
+      "searchResultsTitle": "Resultados da busca",
+      "showResultsAccessibilityLabel": "Mostrar resultados da busca na web para {{query}}",
+      "openLinkError": "Não foi possível abrir este link."
+    },
+    "contextFullRemote": "A conversa ficou sem espaço. Comece um novo chat.",
+    "speculativeInitFailed": "Este dispositivo não conseguiu iniciar a decodificação especulativa para este modelo — provavelmente não há memória suficiente para o contexto de rascunho. Desative a Decodificação especulativa em Configurações → Configurações Avançadas e tente novamente."
   },
   "htmlPreview": {
     "defaultTitle": "Pré-visualização",

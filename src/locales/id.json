@@ -31,7 +31,8 @@
     "close": "Tutup",
     "clear": "Bersihkan",
     "gallery": "Galeri",
-    "stop": "Berhenti"
+    "stop": "Berhenti",
+    "noResults": "Tidak ada hasil"
   },
   "settings": {
     "modelInitializationSettings": "Pengaturan Inisialisasi Model",
@@ -161,7 +162,50 @@
     "ttsAvailabilityLowMemoryWarning": "Memori perangkat Anda rendah — fitur ini mungkin tidak bekerja dengan baik.",
     "requestTimeout": "Batas Waktu Permintaan (detik)",
     "requestTimeoutHelp": "Waktu tunggu maksimal untuk server yang lambat merespons. Kosongkan untuk pakai bawaan.",
-    "requestTimeoutPlaceholder": "Opsional - kosongkan untuk pakai bawaan"
+    "requestTimeoutPlaceholder": "Opsional - kosongkan untuk pakai bawaan",
+    "serverType": "Jenis Server",
+    "serverTypeHelp": "Terdeteksi otomatis; ubah jika keliru.",
+    "internetSearch": {
+      "title": "Pencarian Internet",
+      "description": "Izinkan Pal mencari di web dengan alat mereka sendiri. Bawa kunci API Anda sendiri — PocketPal tidak pernah menyimpan kunci Anda atau merutekan kueri Anda.",
+      "providerLabel": "Penyedia pencarian",
+      "providerGated": "Segera hadir",
+      "keyLabel": "Kunci API",
+      "keyIsSet": "Kunci telah diatur untuk {{provider}}.",
+      "keyNotSet": "Tidak ada kunci yang diatur untuk {{provider}}.",
+      "setKeyButton": "Atur Kunci",
+      "updateKeyButton": "Perbarui Kunci",
+      "clearKeyButton": "Hapus Kunci",
+      "keyInputPlaceholder": "Tempel kunci API {{provider}} Anda",
+      "keyUpdateError": "Gagal memperbarui kunci. Silakan coba lagi.",
+      "showKeyAccessibilityLabel": "Tampilkan kunci API",
+      "hideKeyAccessibilityLabel": "Sembunyikan kunci API",
+      "resultCountLabel": "Hasil per pencarian",
+      "resultCountDescription": "Lebih sedikit hasil menyisakan lebih banyak ruang dalam konteks model.",
+      "consentTitle": "Pencarian meninggalkan perangkat Anda",
+      "consentDescription": "Saat Pal mencari di web, kueri Anda dikirim ke penyedia yang dipilih melalui internet. Saat Pal membaca halaman, URL dan konten halaman dapat dikirim ke layanan pembaca default (r.jina.ai) jika penyedia yang dipilih tidak memiliki pembaca bawaan. Kunci dan kueri tidak pernah dikirim ke PocketPal.",
+      "consentAccept": "Saya mengerti",
+      "consentRequired": "Terima pengungkapan di atas untuk mengatur kunci dan mengaktifkan pencarian.",
+      "consentGivenTitle": "Pencarian web diaktifkan",
+      "consentGivenDescription": "Kueri dan pembacaan halaman dapat meninggalkan perangkat Anda seperti dijelaskan di atas.",
+      "consentRevoke": "Cabut"
+    },
+    "languageSheetTitle": "Bahasa",
+    "languageSearchPlaceholder": "Cari bahasa",
+    "speculativeDecoding": "Decoding Spekulatif",
+    "speculativeDecodingDescription": "Gunakan model draf kecil (atau model MTP tertanam) untuk memprediksi token dan mempercepat pembuatan. Eksperimental.",
+    "speculativeNotMTPCapable": "Model aktif tidak mendukung spekulatif dan tidak ada draf yang kompatibel dipasangkan, sehingga ini tetap mati tanpa efek. Ini berlaku secara otomatis untuk model yang mendukung.",
+    "speculativeDraftModel": "Model Draf",
+    "speculativeDraftModelDescription": "Membuat draf token untuk model aktif.",
+    "speculativeDraftModelNone": "Tidak ada (MTP tertanam)",
+    "speculativeDraftModelIgnoredOverridden": "Model aktif memiliki model draf sendiri, sehingga pilihan ini diabaikan.",
+    "speculativeDraftModelIgnoredIncompatible": "Draf ini tidak kompatibel dengan model aktif, sehingga diabaikan.",
+    "speculativeDraftModelIgnoredNotCapable": "Model ini tidak memiliki lapisan draf, sehingga tidak dapat digunakan sebagai model draf.",
+    "speculativeDraftKeyCacheType": "Tipe Cache Kunci Draf",
+    "speculativeDraftValueCacheType": "Tipe Cache Nilai Draf",
+    "speculativeDraftNGpuLayers": "Lapisan GPU Draf",
+    "speculativeDraftNGpuLayersDescription": "Jumlah lapisan model draf yang dialihkan ke GPU.",
+    "speculativeDraftCacheTypeInactiveDescription": "Berlaku setelah decoding spekulatif berjalan."
   },
   "memory": {
     "shortWarning": "Peringatan Memori",
@@ -348,7 +392,11 @@
         "author": "Penulis",
         "requiresProjectionModel": "Memerlukan model proyeksi",
         "downloadProjectionModel": "Unduh model proyeksi",
-        "viewModelCardOnHuggingFace": "Lihat Kartu Model di Hugging Face"
+        "viewModelCardOnHuggingFace": "Lihat Kartu Model di Hugging Face",
+        "visionSupported": "Didukung",
+        "visionNotSupported": "Tidak didukung",
+        "visionUnknown": "Tidak diketahui",
+        "draftOnlyReason": "Model khusus draf. Pilih di Pengaturan → Decoding spekulatif."
       },
       "accessibility": {
         "expandDetails": "Perluas detail",
@@ -409,7 +457,9 @@
       "multilingual": "Multibahasa",
       "rewriting": "Menulis Ulang",
       "creativity": "Penulisan Kreatif",
-      "vision": "Visi"
+      "vision": "Visi",
+      "mtp": "Spekulatif (MTP)",
+      "mtpDraft": "Draf spekulatif"
     },
     "hubRun": {
       "title": "Unduh Model",
@@ -551,7 +601,8 @@
         "disableThinking": "Nonaktifkan mode berpikir",
         "thinkingEnabled": "Mode berpikir diaktifkan",
         "thinkingDisabled": "Mode berpikir dinonaktifkan",
-        "thinkText": "Berpikir"
+        "thinkText": "Berpikir",
+        "cycleEffort": "Tingkat penalaran: {{level}}. Ketuk dua kali untuk mengganti tingkat penalaran"
       }
     },
     "contentReportSheet": {
@@ -702,7 +753,8 @@
       "exportCurrentSession": "Ekspor sesi saat ini",
       "exportAllSessions": "Ekspor semua sesi",
       "exportChatSession": "Ekspor sesi obrolan",
-      "importSessions": "Impor sesi"
+      "importSessions": "Impor sesi",
+      "exportCurrentSessionMarkdown": "Ekspor sebagai Markdown"
     },
     "hfTokenSheet": {
       "title": "Token Hugging Face",
@@ -734,7 +786,20 @@
     },
     "modelSettingsSheet": {
       "modelSettings": "Pengaturan Model",
-      "saveChanges": "Simpan Perubahan"
+      "saveChanges": "Simpan Perubahan",
+      "reasoningSection": "Penalaran",
+      "isReasoningModel": "Model penalaran",
+      "isReasoningModelHelp": "Tampilkan kontrol berpikir untuk model ini, meskipun tidak terdeteksi otomatis.",
+      "supportsEffort": "Mendukung tingkat penalaran bertingkat",
+      "effortValues": "Tingkat penalaran yang didukung model ini",
+      "effortLevels": {
+        "minimal": "Minimal",
+        "low": "Rendah",
+        "medium": "Sedang",
+        "high": "Tinggi",
+        "xhigh": "Sangat tinggi",
+        "max": "Maksimal"
+      }
     },
     "modelsHeaderRight": {
       "menuTitleHf": "Model Hugging Face",
@@ -766,12 +831,16 @@
       "talentNames": {
         "render_html": "Pratinjau HTML",
         "calculate": "Ekspresi matematika",
-        "datetime": "Tanggal & waktu"
+        "datetime": "Tanggal & waktu",
+        "web_search": "Pencarian web",
+        "read_url": "Baca halaman web"
       },
       "talentDescriptions": {
         "render_html": "Render dokumen HTML secara inline di chat",
         "calculate": "Evaluasi ekspresi matematika",
-        "datetime": "Dapatkan tanggal dan waktu saat ini"
+        "datetime": "Dapatkan tanggal dan waktu saat ini",
+        "web_search": "Cari di internet untuk informasi terkini (memerlukan kunci API di Pengaturan)",
+        "read_url": "Baca konten lengkap halaman web (memerlukan kunci API di Pengaturan)"
       },
       "greeting": {
         "sectionLabel": "Sapaan",
@@ -914,8 +983,11 @@
         "threeWeeksAgo": "3 Minggu Lalu",
         "fourWeeksAgo": "4 Minggu Lalu",
         "lastMonth": "Bulan Lalu",
-        "older": "Lebih Lama"
-      }
+        "older": "Lebih Lama",
+        "pinned": "Disematkan"
+      },
+      "pin": "Sematkan",
+      "unpin": "Lepaskan sematan"
     },
     "usageStats": {
       "tooltip": {
@@ -951,7 +1023,8 @@
       "tokensPerSec": "{{value}} token/detik",
       "ttft": "{{value}}md TTFT",
       "interrupted": "Terputus",
-      "truncated": "Terpotong — kemungkinan konteks penuh"
+      "truncated": "Terpotong — kemungkinan konteks penuh",
+      "draftAccepted": "draf: {{accepted}}/{{total}} ({{pct}}%)"
     },
     "pendingIndicator": {
       "preparingTool": "Menyiapkan alat",
@@ -1163,7 +1236,19 @@
     "increaseContextReloading": "Memuat ulang model dengan konteks yang lebih besar…",
     "increaseContextSuccess": "Konteks ditingkatkan menjadi {{target}} token.",
     "increaseContextFailure": "Gagal meningkatkan ukuran konteks. Pengaturan sebelumnya telah dipulihkan.",
-    "palLoadHint": "Pal ini cenderung membutuhkan lebih banyak ruang daripada yang diizinkan ukuran konteks saat ini."
+    "palLoadHint": "Pal ini cenderung membutuhkan lebih banyak ruang daripada yang diizinkan ukuran konteks saat ini.",
+    "webSearch": {
+      "searched": "Dicari: {{query}}",
+      "noResults": "Tidak ada hasil",
+      "noResultsFor": "Tidak ada hasil untuk {{query}}",
+      "resultsCount": "{{count}} hasil",
+      "resultsCountOne": "1 hasil",
+      "searchResultsTitle": "Hasil pencarian",
+      "showResultsAccessibilityLabel": "Tampilkan hasil pencarian web untuk {{query}}",
+      "openLinkError": "Tidak dapat membuka tautan ini."
+    },
+    "contextFullRemote": "Percakapan kehabisan ruang. Mulai obrolan baru.",
+    "speculativeInitFailed": "Perangkat ini tidak dapat memulai decoding spekulatif untuk model ini — kemungkinan besar tidak ada cukup memori untuk konteks draf. Matikan Decoding spekulatif di Pengaturan → Pengaturan Lanjutan dan coba lagi."
   },
   "benchmark": {
     "title": "Benchmark",

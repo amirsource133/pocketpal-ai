@@ -31,7 +31,8 @@
     "close": "Закрити",
     "clear": "Очистити все",
     "gallery": "Галерея",
-    "stop": "Зупинити"
+    "stop": "Зупинити",
+    "noResults": "Нічого не знайдено"
   },
   "settings": {
     "modelInitializationSettings": "Налаштування ініціалізації моделі",
@@ -161,7 +162,50 @@
     "ttsAvailabilityLowMemoryWarning": "У вашому пристрої мало пам'яті — програма може працювати нестабільно.",
     "requestTimeout": "Тайм-аут запиту (секунди)",
     "requestTimeoutHelp": "Максимальний час очікування відповіді від повільного сервера. Залиште поле порожнім, щоб використовувати значення за замовчуванням.",
-    "requestTimeoutPlaceholder": "Необов’язкове — залиште порожнім, щоб використовувати значення за замовчуванням"
+    "requestTimeoutPlaceholder": "Необов’язкове — залиште порожнім, щоб використовувати значення за замовчуванням",
+    "serverType": "Тип сервера",
+    "serverTypeHelp": "Визначається автоматично; змініть, якщо неправильно.",
+    "internetSearch": {
+      "title": "Пошук в інтернеті",
+      "description": "Дозвольте Pals шукати в інтернеті за допомогою власних інструментів. Використовуйте власний ключ API — PocketPal ніколи не зберігає ваші ключі й не маршрутизує ваші запити.",
+      "providerLabel": "Постачальник пошуку",
+      "providerGated": "Незабаром",
+      "keyLabel": "Ключ API",
+      "keyIsSet": "Ключ для {{provider}} встановлено.",
+      "keyNotSet": "Для {{provider}} не встановлено ключ.",
+      "setKeyButton": "Встановити ключ",
+      "updateKeyButton": "Оновити ключ",
+      "clearKeyButton": "Очистити ключ",
+      "keyInputPlaceholder": "Вставте свій ключ API для {{provider}}",
+      "keyUpdateError": "Не вдалося оновити ключ. Спробуйте ще раз.",
+      "showKeyAccessibilityLabel": "Показати ключ API",
+      "hideKeyAccessibilityLabel": "Сховати ключ API",
+      "resultCountLabel": "Результатів на пошук",
+      "resultCountDescription": "Менша кількість результатів залишає більше місця в контексті моделі.",
+      "consentTitle": "Пошукові запити залишають ваш пристрій",
+      "consentDescription": "Коли Pal шукає в інтернеті, ваш запит надсилається вибраному постачальнику через інтернет. Коли Pal читає сторінку, URL-адреса та вміст сторінки можуть натомість надсилатися до стандартного сервісу читання (r.jina.ai), якщо у вибраного постачальника немає власного засобу читання. Ключі та запити ніколи не надсилаються до PocketPal.",
+      "consentAccept": "Зрозуміло",
+      "consentRequired": "Прийміть застереження вище, щоб встановити ключ і ввімкнути пошук.",
+      "consentGivenTitle": "Пошук в інтернеті ввімкнено",
+      "consentGivenDescription": "Запити та читання сторінок можуть залишати ваш пристрій, як описано вище.",
+      "consentRevoke": "Відкликати"
+    },
+    "languageSheetTitle": "Мова",
+    "languageSearchPlaceholder": "Пошук мов",
+    "speculativeDecoding": "Спекулятивне декодування",
+    "speculativeDecodingDescription": "Використовуйте невелику модель-чернетку (або вбудовану модель MTP) для передбачення токенів і прискорення генерації. Експериментальна функція.",
+    "speculativeNotMTPCapable": "Активна модель не підтримує спекулятивне декодування, і сумісної моделі-чернетки не додано, тож для неї воно лишається вимкненим і не діє. До моделей із підтримкою воно застосовується автоматично.",
+    "speculativeDraftModel": "Модель-чернетка",
+    "speculativeDraftModelDescription": "Створює чернетки токенів для активної моделі.",
+    "speculativeDraftModelNone": "Немає (вбудована MTP)",
+    "speculativeDraftModelIgnoredOverridden": "Активна модель має власну модель-чернетку, тож цей вибір ігнорується.",
+    "speculativeDraftModelIgnoredIncompatible": "Ця чернетка несумісна з активною моделлю, тож вона ігнорується.",
+    "speculativeDraftModelIgnoredNotCapable": "Ця модель не містить шарів-чернеток, тож її не можна використати як модель-чернетку.",
+    "speculativeDraftKeyCacheType": "Тип кешу ключів чернетки",
+    "speculativeDraftValueCacheType": "Тип кешу значень чернетки",
+    "speculativeDraftNGpuLayers": "Шари GPU для чернетки",
+    "speculativeDraftNGpuLayersDescription": "Кількість шарів моделі-чернетки, які буде вивантажено на GPU.",
+    "speculativeDraftCacheTypeInactiveDescription": "Застосовується, щойно запрацює спекулятивне декодування."
   },
   "memory": {
     "shortWarning": "Попередження про пам'ять",
@@ -348,7 +392,11 @@
         "author": "Автор",
         "requiresProjectionModel": "Потрібна модель проекції",
         "downloadProjectionModel": "Завантажити модель прогнозування",
-        "viewModelCardOnHuggingFace": "Переглянути картку моделі на Hugging Face"
+        "viewModelCardOnHuggingFace": "Переглянути картку моделі на Hugging Face",
+        "visionSupported": "Підтримується",
+        "visionNotSupported": "Не підтримується",
+        "visionUnknown": "Невідомо",
+        "draftOnlyReason": "Модель лише для чернеток. Виберіть її в розділі «Налаштування» → «Спекулятивне декодування»."
       },
       "accessibility": {
         "expandDetails": "Розгорнути детальну інформацію",
@@ -409,7 +457,9 @@
       "multilingual": "Багатомовний",
       "rewriting": "Переписання",
       "creativity": "Творче письмо",
-      "vision": "Бачення"
+      "vision": "Бачення",
+      "mtp": "Спекулятивна (MTP)",
+      "mtpDraft": "Спекулятивна чернетка"
     },
     "hubRun": {
       "title": "Завантажити Модель",
@@ -515,7 +565,8 @@
       "tokensPerSec": "{{value}} токенів/сек",
       "ttft": "{{value}} мс TTFT",
       "interrupted": "Перервано",
-      "truncated": "Перервано — ймовірно, контекст вичерпано"
+      "truncated": "Перервано — ймовірно, контекст вичерпано",
+      "draftAccepted": "чернетка: {{accepted}}/{{total}} ({{pct}}%)"
     },
     "exportUtils": {
       "fileSaved": "Файл збережено",
@@ -549,7 +600,7 @@
       "activateModelButton": "Вибрати модель",
       "loading": "Завантаження...",
       "gettingReadyTitle": "{{name}} готується",
-      "gettingReadyDescription": "Ми повідомимо, щойно ваш приятель буде готовий до спілкування. Натисніть банер угорі, щоб побачити, як справи."
+      "gettingReadyDescription": "Ми повідомимо вас, щойно ваш Pal зможе почати чат. Натисніть на банер у верхній частині екрана, щоб дізнатися, як просуваються справи."
     },
     "chatInput": {
       "inputPlaceholder": "Повідомлення",
@@ -558,7 +609,8 @@
         "disableThinking": "Вимкнути режим мислення",
         "thinkingEnabled": "Увімкнено режим мислення",
         "thinkingDisabled": "Режим мислення вимкнено",
-        "thinkText": "Мислення"
+        "thinkText": "Мислення",
+        "cycleEffort": "Зусилля на міркування: {{level}}. Подвійний дотик, щоб перемкнути рівень зусиль"
       }
     },
     "contentReportSheet": {
@@ -709,7 +761,8 @@
       "exportCurrentSession": "Експортувати поточну сесію",
       "exportAllSessions": "Експортувати всі сесії",
       "exportChatSession": "Експортувати сеанс чату",
-      "importSessions": "Імпортувати сесії"
+      "importSessions": "Імпортувати сесії",
+      "exportCurrentSessionMarkdown": "Експортувати як Markdown"
     },
     "hfTokenSheet": {
       "title": "Токен Hugging Face",
@@ -741,7 +794,20 @@
     },
     "modelSettingsSheet": {
       "modelSettings": "Налаштування Моделі",
-      "saveChanges": "Зберегти зміни"
+      "saveChanges": "Зберегти зміни",
+      "reasoningSection": "Міркування",
+      "isReasoningModel": "Модель із міркуванням",
+      "isReasoningModelHelp": "Показувати елемент керування мисленням для цієї моделі, навіть якщо його не визначено автоматично.",
+      "supportsEffort": "Підтримує градації зусиль",
+      "effortValues": "Рівні зусиль, які підтримує ця модель",
+      "effortLevels": {
+        "minimal": "Мінімальний",
+        "low": "Низький",
+        "medium": "Середній",
+        "high": "Високий",
+        "xhigh": "Дуже високий",
+        "max": "Максимальний"
+      }
     },
     "modelsHeaderRight": {
       "menuTitleHf": "Моделі Hugging Face",
@@ -773,12 +839,16 @@
       "talentNames": {
         "render_html": "Попередній перегляд HTML",
         "calculate": "Математичні вирази",
-        "datetime": "Дата й час"
+        "datetime": "Дата й час",
+        "web_search": "Пошук в інтернеті",
+        "read_url": "Читання веб-сторінки"
       },
       "talentDescriptions": {
         "render_html": "Відображати HTML-документи вбудовано в чаті",
         "calculate": "Обчислення математичних виразів",
-        "datetime": "Отримати поточну дату й час"
+        "datetime": "Отримати поточну дату й час",
+        "web_search": "Пошук актуальної інформації в інтернеті (потрібен ключ API в налаштуваннях)",
+        "read_url": "Читання повного вмісту веб-сторінки (потрібен ключ API в налаштуваннях)"
       },
       "greeting": {
         "sectionLabel": "Привіт",
@@ -921,8 +991,11 @@
         "threeWeeksAgo": "3 тижні тому",
         "fourWeeksAgo": "4 тижні тому",
         "lastMonth": "Минулого місяця",
-        "older": "Старші"
-      }
+        "older": "Старші",
+        "pinned": "Закріплені"
+      },
+      "pin": "Закріпити",
+      "unpin": "Відкріпити"
     },
     "usageStats": {
       "tooltip": {
@@ -1163,7 +1236,19 @@
     "increaseContextReloading": "Перезавантаження моделі з більшим контекстом…",
     "increaseContextSuccess": "Контекст збільшено до {{target}} токенів.",
     "increaseContextFailure": "Не вдалося збільшити розмір контексту. Було відновлено попереднє значення.",
-    "palLoadHint": "Цей pal зазвичай потребує більше місця, ніж дозволяє поточний розмір контексту."
+    "palLoadHint": "Цей pal зазвичай потребує більше місця, ніж дозволяє поточний розмір контексту.",
+    "webSearch": {
+      "searched": "Виконано пошук: {{query}}",
+      "noResults": "Немає результатів",
+      "noResultsFor": "Немає результатів для {{query}}",
+      "resultsCount": "{{count}} результатів",
+      "resultsCountOne": "1 результат",
+      "searchResultsTitle": "Результати пошуку",
+      "showResultsAccessibilityLabel": "Показати результати веб-пошуку для {{query}}",
+      "openLinkError": "Не вдалося відкрити це посилання."
+    },
+    "contextFullRemote": "У розмові закінчилося місце. Почніть новий чат.",
+    "speculativeInitFailed": "Цьому пристрою не вдалося запустити спекулятивне декодування для цієї моделі — найімовірніше, бракує пам'яті для контексту чернетки. Вимкніть спекулятивне декодування в розділі «Налаштування» → «Розширені налаштування» та спробуйте ще раз."
   },
   "benchmark": {
     "title": "Бенчмарк",

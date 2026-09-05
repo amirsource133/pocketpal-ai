@@ -31,7 +31,8 @@
     "close": "بستن",
     "clear": "پاک کردن همه",
     "gallery": "گالری",
-    "stop": "توقف"
+    "stop": "توقف",
+    "noResults": "نتیجه‌ای یافت نشد"
   },
   "settings": {
     "modelInitializationSettings": "تنظیمات راه‌اندازی مدل",
@@ -161,7 +162,50 @@
     "ttsAvailabilityLowMemoryWarning": "حافظه دستگاه شما کم است — ممکن است این قابلیت به‌درستی کار نکند.",
     "requestTimeout": "مهلت درخواست (ثانیه)",
     "requestTimeoutHelp": "حداکثر زمان انتظار برای پاسخ سرور کند. برای مقدار پیش‌فرض خالی بگذارید.",
-    "requestTimeoutPlaceholder": "اختیاری - برای مقدار پیش‌فرض خالی بگذارید"
+    "requestTimeoutPlaceholder": "اختیاری - برای مقدار پیش‌فرض خالی بگذارید",
+    "serverType": "نوع سرور",
+    "serverTypeHelp": "به‌صورت خودکار تشخیص داده می‌شود؛ اگر درست نیست تغییرش بدهید.",
+    "internetSearch": {
+      "title": "جستجوی اینترنتی",
+      "description": "بگذارید پَل‌ها با ابزارهای خودشان در وب جستجو کنند. کلید API خودتان را بیاورید — PocketPal هرگز کلیدهای شما را نگه نمی‌دارد و درخواست‌هایتان را هدایت نمی‌کند.",
+      "providerLabel": "ارائه‌دهنده جستجو",
+      "providerGated": "به‌زودی",
+      "keyLabel": "کلید API",
+      "keyIsSet": "کلید برای {{provider}} تنظیم شده است.",
+      "keyNotSet": "کلیدی برای {{provider}} تنظیم نشده است.",
+      "setKeyButton": "تنظیم کلید",
+      "updateKeyButton": "به‌روزرسانی کلید",
+      "clearKeyButton": "پاک کردن کلید",
+      "keyInputPlaceholder": "کلید API {{provider}} خود را جای‌گذاری کنید",
+      "keyUpdateError": "به‌روزرسانی کلید ممکن نشد. لطفاً دوباره تلاش کنید.",
+      "showKeyAccessibilityLabel": "نمایش کلید API",
+      "hideKeyAccessibilityLabel": "مخفی کردن کلید API",
+      "resultCountLabel": "تعداد نتایج در هر جستجو",
+      "resultCountDescription": "نتایج کمتر فضای بیشتری در context مدل باقی می‌گذارد.",
+      "consentTitle": "جستجوها از دستگاه شما خارج می‌شوند",
+      "consentDescription": "وقتی یک پَل در وب جستجو می‌کند، درخواست شما از طریق اینترنت به ارائه‌دهنده انتخاب‌شده ارسال می‌شود. وقتی یک پَل صفحه‌ای را می‌خواند، اگر ارائه‌دهنده انتخاب‌شده خواننده اختصاصی نداشته باشد، ممکن است به‌جای آن آدرس و محتوای صفحه به یک سرویس خواننده پیش‌فرض (r.jina.ai) ارسال شود. کلیدها و درخواست‌ها هرگز به PocketPal ارسال نمی‌شوند.",
+      "consentAccept": "متوجه شدم",
+      "consentRequired": "برای تنظیم کلید و فعال‌سازی جستجو، توضیحات بالا را بپذیرید.",
+      "consentGivenTitle": "جستجوی وب فعال است",
+      "consentGivenDescription": "همان‌طور که در بالا توضیح داده شد، درخواست‌ها و خواندن صفحات ممکن است از دستگاه شما خارج شوند.",
+      "consentRevoke": "لغو دسترسی"
+    },
+    "languageSheetTitle": "زبان",
+    "languageSearchPlaceholder": "جستجوی زبان‌ها",
+    "speculativeDecoding": "رمزگشایی گمانه‌زنانه",
+    "speculativeDecodingDescription": "از یک مدل پیش‌نویس کوچک (یا یک مدل MTP توکار) برای پیش‌بینی توکن‌ها و سریع‌تر کردن تولید استفاده کنید. آزمایشی.",
+    "speculativeNotMTPCapable": "مدل فعال از رمزگشایی گمانه‌زنانه پشتیبانی نمی‌کند و مدل پیش‌نویس سازگاری هم برایش انتخاب نشده، برای همین این گزینه برایش خاموش می‌ماند و تأثیری ندارد. برای مدل‌هایی که پشتیبانی می‌کنند به‌صورت خودکار اعمال می‌شود.",
+    "speculativeDraftModel": "مدل پیش‌نویس",
+    "speculativeDraftModelDescription": "برای مدل فعال، توکن‌ها را پیش‌نویس می‌کند.",
+    "speculativeDraftModelNone": "هیچ‌کدام (MTP توکار)",
+    "speculativeDraftModelIgnoredOverridden": "مدل فعال مدل پیش‌نویس خودش را دارد، برای همین این انتخاب نادیده گرفته می‌شود.",
+    "speculativeDraftModelIgnoredIncompatible": "این مدل پیش‌نویس با مدل فعال سازگار نیست، برای همین نادیده گرفته می‌شود.",
+    "speculativeDraftModelIgnoredNotCapable": "این مدل هیچ لایه پیش‌نویسی ندارد، برای همین نمی‌توان از آن به‌عنوان مدل پیش‌نویس استفاده کرد.",
+    "speculativeDraftKeyCacheType": "نوع کش Key پیش‌نویس",
+    "speculativeDraftValueCacheType": "نوع کش Value پیش‌نویس",
+    "speculativeDraftNGpuLayers": "لایه‌های GPU پیش‌نویس",
+    "speculativeDraftNGpuLayersDescription": "تعداد لایه‌های مدل پیش‌نویس که روی GPU بارگذاری می‌شوند.",
+    "speculativeDraftCacheTypeInactiveDescription": "به‌محض اجرای رمزگشایی گمانه‌زنانه اعمال می‌شود."
   },
   "memory": {
     "shortWarning": "هشدار حافظه",
@@ -348,7 +392,11 @@
         "author": "نویسنده",
         "requiresProjectionModel": "نیاز به مدل پروجکشن",
         "downloadProjectionModel": "دانلود مدل پروجکشن",
-        "viewModelCardOnHuggingFace": "مشاهده کارت مدل در Hugging Face"
+        "viewModelCardOnHuggingFace": "مشاهده کارت مدل در Hugging Face",
+        "visionSupported": "پشتیبانی می‌شود",
+        "visionNotSupported": "پشتیبانی نمی‌شود",
+        "visionUnknown": "نامشخص",
+        "draftOnlyReason": "مدل فقط پیش‌نویس. آن را از مسیر تنظیمات → رمزگشایی گمانه‌زنانه انتخاب کنید."
       },
       "accessibility": {
         "expandDetails": "نمایش جزئیات",
@@ -409,7 +457,9 @@
       "multilingual": "چندزبانه",
       "rewriting": "بازنویسی",
       "creativity": "نوشتن خلاقانه",
-      "vision": "بینایی"
+      "vision": "بینایی",
+      "mtp": "گمانه‌زنانه (MTP)",
+      "mtpDraft": "پیش‌نویس گمانه‌زنانه"
     },
     "hubRun": {
       "title": "دانلود مدل",
@@ -551,7 +601,8 @@
         "disableThinking": "غیرفعال‌سازی حالت تفکر",
         "thinkingEnabled": "حالت تفکر فعال شد",
         "thinkingDisabled": "حالت تفکر غیرفعال شد",
-        "thinkText": "تفکر"
+        "thinkText": "تفکر",
+        "cycleEffort": "میزان استدلال: {{level}}. برای تغییر میزان دوبار ضربه بزنید"
       }
     },
     "contentReportSheet": {
@@ -702,7 +753,8 @@
       "exportCurrentSession": "خروجی جلسه فعلی",
       "exportAllSessions": "خروجی همه جلسات",
       "exportChatSession": "خروجی جلسه چت",
-      "importSessions": "ورود جلسات"
+      "importSessions": "ورود جلسات",
+      "exportCurrentSessionMarkdown": "خروجی به صورت Markdown"
     },
     "hfTokenSheet": {
       "title": "توکن Hugging Face",
@@ -734,7 +786,20 @@
     },
     "modelSettingsSheet": {
       "modelSettings": "تنظیمات مدل",
-      "saveChanges": "ذخیره تغییرات"
+      "saveChanges": "ذخیره تغییرات",
+      "reasoningSection": "استدلال",
+      "isReasoningModel": "مدل استدلالی",
+      "isReasoningModelHelp": "نمایش کنترل تفکر برای این مدل، حتی اگر به‌صورت خودکار تشخیص داده نشده باشد.",
+      "supportsEffort": "پشتیبانی از میزان استدلال درجه‌بندی‌شده",
+      "effortValues": "میزان‌های استدلالی که این مدل پشتیبانی می‌کند",
+      "effortLevels": {
+        "minimal": "حداقل",
+        "low": "کم",
+        "medium": "متوسط",
+        "high": "زیاد",
+        "xhigh": "خیلی زیاد",
+        "max": "حداکثر"
+      }
     },
     "modelsHeaderRight": {
       "menuTitleHf": "مدل‌های Hugging Face",
@@ -766,12 +831,16 @@
       "talentNames": {
         "render_html": "پیش‌نمایش HTML",
         "calculate": "عبارت‌های ریاضی",
-        "datetime": "تاریخ و زمان"
+        "datetime": "تاریخ و زمان",
+        "web_search": "جستجوی وب",
+        "read_url": "خواندن صفحه وب"
       },
       "talentDescriptions": {
         "render_html": "نمایش اسناد HTML به‌صورت درون‌خطی در چت",
         "calculate": "محاسبه عبارت‌های ریاضی",
-        "datetime": "دریافت تاریخ و زمان فعلی"
+        "datetime": "دریافت تاریخ و زمان فعلی",
+        "web_search": "جستجوی اینترنت برای اطلاعات به‌روز (به کلید API در تنظیمات نیاز دارد)",
+        "read_url": "خواندن کامل محتوای یک صفحه وب (به کلید API در تنظیمات نیاز دارد)"
       },
       "greeting": {
         "sectionLabel": "خوش‌آمدگویی",
@@ -914,8 +983,11 @@
         "threeWeeksAgo": "۳ هفته پیش",
         "fourWeeksAgo": "۴ هفته پیش",
         "lastMonth": "ماه گذشته",
-        "older": "قدیمی‌تر"
-      }
+        "older": "قدیمی‌تر",
+        "pinned": "سنجاق‌شده"
+      },
+      "pin": "سنجاق کردن",
+      "unpin": "لغو سنجاق"
     },
     "usageStats": {
       "tooltip": {
@@ -951,7 +1023,8 @@
       "tokensPerSec": "{{value}} توکن/ثانیه",
       "ttft": "{{value}}ms TTFT",
       "interrupted": "متوقف شد",
-      "truncated": "قطع شد — احتمالاً context پر شده"
+      "truncated": "قطع شد — احتمالاً context پر شده",
+      "draftAccepted": "پیش‌نویس: {{accepted}}/{{total}} ({{pct}}%)"
     },
     "pendingIndicator": {
       "preparingTool": "در حال آماده‌سازی ابزار",
@@ -1163,7 +1236,19 @@
     "generatingPreview": "در حال تولید پیش‌نمایش… ({{tokens}} توکن)",
     "generatingPreviewPending": "در حال تولید پیش‌نمایش…",
     "toolUsedChip": "از {{name}} استفاده شد",
-    "toolErrorBlock": "{{name}} ناموفق بود"
+    "toolErrorBlock": "{{name}} ناموفق بود",
+    "webSearch": {
+      "searched": "جستجو شد: {{query}}",
+      "noResults": "نتیجه‌ای یافت نشد",
+      "noResultsFor": "نتیجه‌ای برای {{query}} یافت نشد",
+      "resultsCount": "{{count}} نتیجه",
+      "resultsCountOne": "۱ نتیجه",
+      "searchResultsTitle": "نتایج جستجو",
+      "showResultsAccessibilityLabel": "نمایش نتایج جستجوی وب برای {{query}}",
+      "openLinkError": "باز کردن این لینک ممکن نشد."
+    },
+    "contextFullRemote": "گنجایش گفتگو پر شد. یک چت جدید شروع کنید.",
+    "speculativeInitFailed": "این دستگاه نتوانست رمزگشایی گمانه‌زنانه را برای این مدل شروع کند — به‌احتمال زیاد حافظه کافی برای context پیش‌نویس وجود ندارد. رمزگشایی گمانه‌زنانه را از مسیر تنظیمات → تنظیمات پیشرفته خاموش کنید و دوباره تلاش کنید."
   },
   "benchmark": {
     "title": "بنچمارک",
